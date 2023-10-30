@@ -122,11 +122,17 @@ extension HomeViewController: UISearchBarDelegate {
     
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
         self.homeViewModel?.workItem?.cancel()
+        self.tableView.isScrollEnabled = false
         
         let newWorkItem = DispatchWorkItem {
-            self.homeViewModel?.tableViewDataList.removeAll()
-            self.homeViewModel?.currentSearchText = searchText
-            self.homeViewModel?.fetchMovies(searchText: searchText, section: .vertical)
+            if !searchText.isEmpty {
+                self.homeViewModel?.tableViewDataList.removeAll()
+                self.homeViewModel?.currentSearchText = searchText
+                self.homeViewModel?.fetchMovies(searchText: searchText, section: .vertical)
+                DispatchQueue.main.async {
+                    self.tableView.isScrollEnabled = true
+                }
+            }
         }
         
         self.homeViewModel?.workItem = newWorkItem
@@ -156,13 +162,15 @@ extension HomeViewController: UITableViewDataSource, UITableViewDelegate {
     }
     
     func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
+        let activityIndicator = UIActivityIndicatorView()
         if let lastCellIndex = homeViewModel?.tableViewDataList.count, lastCellIndex - 1 == indexPath.last {
-            let activityIndicator = UIActivityIndicatorView()
             activityIndicator.startAnimating()
-            activityIndicator.hidesWhenStopped = true
             tableView.tableFooterView = activityIndicator
             homeViewModel?.tableViewCurrentPage += 1
             homeViewModel?.fetchMovies(searchText: homeViewModel?.currentSearchText ?? "", section: .vertical)
+        } else {
+            activityIndicator.stopAnimating()
+            tableView.tableFooterView = nil
         }
     }
     
